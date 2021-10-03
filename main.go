@@ -7,30 +7,6 @@ import (
 	"time"
 )
 
-/*
-
-Treasure Hunt!
-
-y
-|
-########
-#......#
-#.###..#
-#...#.##
-#X#....#
-######## -- x
-
-# represents anentity_obstacle.
-. represents a clear entity_path.
-X represents the entity_player’s starting position.
-
-A entity_treasure is hidden within one of the clear entity_path points, and the user must find it.
-User have long range of vision, it able to see left/right/up/down whenever the entity_path is unobstructed.
-User restricted to only move in 3 direction, up then right then down.
-The location of the entity_treasure is located randomly every runtime.
-All possible location of the entity_treasure marked as $.
-
-*/
 const ( // direction
 	up = iota
 	down
@@ -61,6 +37,7 @@ const (
 
 const (
 	delay_time       = 400  // time used to display a step taken for each movement before continuing
+	pause_time       = 4000 // time used to display gimmick before full run exploration
 	render_interface = unix // planned to be able to run in golang playground but got TIMEOUT instead!
 )
 
@@ -111,14 +88,14 @@ func main() {
 	}
 	treasureMap.render() // display initial condition with treasure
 
-	fmt.Println("Initial Condition, treasure hid in:", treasure.Position)
-	time.Sleep(5 * time.Second)
+	fmt.Println("Initial Condition, treasure hid in:", treasure.Position, "Wait for it..")
+	time.Sleep(pause_time * time.Millisecond)
 
 	treasureMap.setPossibleTreasure()
 	treasureMap.render() // display map with possible treasure location
 
 	fmt.Println("Now it's hidden! Let's go find it!")
-	time.Sleep(5 * time.Second)
+	time.Sleep(pause_time * time.Millisecond)
 
 	for !player.FoundTreasure {
 		// player see unobstructed path, and determine which is treasure and which is path
