@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -79,9 +80,11 @@ type Treasure struct {
 }
 
 type TreasureMap struct {
-	Size            [2]int
-	OriginalMapping map[[2]int]int
-	Mapping         map[[2]int]int
+	Size                         [2]int
+	OriginalMapping              map[[2]int]int
+	Mapping                      map[[2]int]int
+	ListPossibleTreasureLocation map[[2]int]bool
+	TreasureLocation             [2]int
 }
 
 func main() {
@@ -107,8 +110,8 @@ func main() {
 		treasurePositionXY, listPathPosition := player.see(treasureMap)
 		for _, pathPosition := range listPathPosition {
 			treasureMap.setEntity(entity_path, pathPosition)
+			treasureMap.updatePossibleTreasureLocation(listPathPosition)
 		}
-		treasureMap.render()
 
 		if !player.FoundTreasure {
 			// keep moving until found the treasure
@@ -128,6 +131,8 @@ func main() {
 			// update player position
 			player.setPosition(newPosition)
 		} else {
+			treasureMap.clearPossibleTreasureLocation()
+			treasureMap.setTreasureLocation(treasurePositionXY)
 			treasureMap.revealMap(treasurePositionXY)
 			treasureMap.render()
 			break
@@ -283,16 +288,17 @@ func (t *Treasure) randomizePosition(sizeX, sizeY int) {
 // NewTreasureMap creating a new blank treasure map
 func NewTreasureMap(size [2]int) TreasureMap {
 	return TreasureMap{
-		Size:            size,
-		Mapping:         make(map[[2]int]int),
-		OriginalMapping: make(map[[2]int]int),
+		Size:                         size,
+		Mapping:                      make(map[[2]int]int),
+		OriginalMapping:              make(map[[2]int]int),
+		ListPossibleTreasureLocation: make(map[[2]int]bool),
 	}
 }
 
 // render display of the mapping, not the original mapping. It also print the info of list possible location of the treasure.
 func (tm *TreasureMap) render() {
 	var (
-		treasureMapDrawPerLine, treasureMapDrawComplete string
+		treasureMapDrawPerLine, treasureMapDrawComplete, treasureMapAdditional string
 	)
 
 	for y := 1; y <= tm.Size[1]; y++ {
@@ -304,10 +310,24 @@ func (tm *TreasureMap) render() {
 			treasureMapDrawPerLine = treasureMapDrawPerLine + convertIntToEntity(tm.Mapping[[2]int{x, y}])
 		}
 		treasureMapDrawComplete = treasureMapDrawPerLine + treasureMapDrawComplete
-
 	}
 
-	// fmt.Println("\033[2J")
+	if len(tm.ListPossibleTreasureLocation) > 0 {
+		for coordinate, possibleLocation := range tm.ListPossibleTreasureLocation {
+			coordinateString := strconv.Itoa(coordinate[0]) + "," + strconv.Itoa(coordinate[1])
+			if possibleLocation {
+				treasureMapAdditional = treasureMapAdditional + fmt.Sprintf("{%s},", coordinateString)
+			}
+		}
+		treasureMapDrawComplete = treasureMapDrawComplete + fmt.Sprintf("\nPossible treasure location: %s", treasureMapAdditional)
+	}
+
+	if tm.TreasureLocation != [2]int{} {
+		coordinateString := strconv.Itoa(tm.TreasureLocation[0]) + "," + strconv.Itoa(tm.TreasureLocation[1])
+		treasureMapDrawComplete = treasureMapDrawComplete + fmt.Sprintf("\nTreasure found at location: {%s}", coordinateString)
+	}
+
+	fmt.Println("\033[2J")
 	fmt.Println(treasureMapDrawComplete)
 	time.Sleep(delay_time * time.Millisecond)
 }
@@ -373,6 +393,7 @@ func (tm *TreasureMap) setPossibleTreasure() {
 	for coordinate := range tm.Mapping {
 		tm.OriginalMapping[coordinate] = tm.Mapping[coordinate]
 		if tm.Mapping[coordinate] == entity_path {
+			tm.ListPossibleTreasureLocation[coordinate] = true
 			tm.Mapping[coordinate] = entity_treasure
 		}
 	}
@@ -385,6 +406,24 @@ func (tm *TreasureMap) revealMap(treasurePositionXY [2]int) {
 			tm.Mapping[coordinate] = entity_path
 		}
 	}
+}
+
+// setTreasureLocation mark the found treasure location
+func (tm *TreasureMap) setTreasureLocation(treasurePositionXY [2]int) {
+	tm.TreasureLocation = treasurePositionXY
+}
+
+// updatePossibleTreasureLocation keeping record of all possible treasure location
+func (tm *TreasureMap) updatePossibleTreasureLocation(listPathPosition [][2]int) {
+	// remove the possible treasure location if its a path
+	for _, pathPosition := range listPathPosition {
+		tm.ListPossibleTreasureLocation[pathPosition] = false
+	}
+}
+
+// clearPossibleTreasureLocation empty the list of possible treasure location, usually used once the treasure found
+func (tm *TreasureMap) clearPossibleTreasureLocation() {
+	tm.ListPossibleTreasureLocation = make(map[[2]int]bool)
 }
 
 // convertIntToEntity convert code constant of entity to a map drawn entity
