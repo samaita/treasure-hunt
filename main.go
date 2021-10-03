@@ -33,8 +33,9 @@ All possible location of the entity_treasure marked as $.
 */
 const ( // direction
 	up = iota
-	right
 	down
+	right
+	left
 	stuck
 )
 
@@ -73,6 +74,7 @@ type Player struct {
 	Position       [2]int
 	DirectionTaken int
 	FoundTreasure  bool
+	Range          map[int]int
 }
 
 type Treasure struct {
@@ -145,6 +147,7 @@ func main() {
 func NewPlayer() Player {
 	return Player{
 		Position: playerStartPosition,
+		Range:    make(map[int]int),
 	}
 }
 
@@ -194,42 +197,53 @@ func (p *Player) see(treasureMap TreasureMap) ([2]int, [][2]int) {
 		listPathPosition, pathFound     [][2]int
 	)
 
-	// see all entity in x axis with same y axis
+	// see all entity in x axis with same y axis / right direction ->
 	treasurePosition, pathFound = checkMap(treasureMap, startX+1, startY, 1, axis_x)
 	if treasureMap.OriginalMapping[treasurePosition] == entity_treasure {
 		treasureFound = treasurePosition
 	}
 	listPathPosition = append(listPathPosition, pathFound...)
+	p.Range[right] = len(pathFound)
 
-	// see all entity in -x axis with same y axis
+	// see all entity in -x axis with same y axis / left direction <-
 	treasurePosition, pathFound = checkMap(treasureMap, startX-1, startY, -1, axis_x)
 	if treasureMap.OriginalMapping[treasurePosition] == entity_treasure {
 		treasureFound = treasurePosition
 	}
 	listPathPosition = append(listPathPosition, pathFound...)
+	p.Range[left] = len(pathFound)
 
-	// see all entity in y axis with same x axis
+	// see all entity in y axis with same x axis / up direction ^
 	treasurePosition, pathFound = checkMap(treasureMap, startY+1, startX, 1, axis_y)
 	if treasureMap.OriginalMapping[treasurePosition] == entity_treasure {
 		treasureFound = treasurePosition
 	}
 	listPathPosition = append(listPathPosition, pathFound...)
+	p.Range[up] = len(pathFound)
 
-	// see all entity in -y axis with same x axis
+	// see all entity in -y axis with same x axis / down direction v
 	treasurePosition, pathFound = checkMap(treasureMap, startY-1, startX, -1, axis_y)
 	if treasureMap.OriginalMapping[treasurePosition] == entity_treasure {
 		treasureFound = treasurePosition
 	}
 	listPathPosition = append(listPathPosition, pathFound...)
+	p.Range[down] = len(pathFound)
 
 	if treasureMap.OriginalMapping[treasureFound] == entity_treasure {
 		p.FoundTreasure = true
 	}
 
+	// check possibility of path intersection with best probability to get the most explored map
+	if p.DirectionTaken == up && p.Range[right] > p.Range[up] {
+		p.DirectionTaken = right
+	} else if p.DirectionTaken == right && p.Range[down] > p.Range[right] {
+		p.DirectionTaken = down
+	}
+
 	return treasureFound, listPathPosition
 }
 
-// checkMap a shorthand to validate an unobstructed line of sight in original mapping
+// checkMap a shorthand to validate an unobstructed line of sight in original mapping, return treasure location, list of clear path in sight
 func checkMap(treasureMap TreasureMap, startAxis int, staticAxis int, addValue int, typeAxis int) ([2]int, [][2]int) {
 	var (
 		check            = true
