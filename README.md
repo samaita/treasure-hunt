@@ -39,6 +39,39 @@ To run the program clone/copy the code and type this command:
 ```
 go run main.go
 ```
+## Sample Output
+### Initial Condition
+```
+########
+#......#
+#.###..#
+#...#.##
+#X#...$#
+########
+Initial Condition, treasure hid in: [7 2] Wait for it..
+```
+It will pause 4s at default, before continuing.
+### Exploration
+```
+########
+#.$$$$$#
+#X###$$#
+#...#$##
+#.#$$$$#
+########
+Possible treasure location: {6,5},{4,5},{7,5},{5,2},{4,2},{3,5},{5,5},{6,2},{7,4},{6,3},{6,4}
+```
+### Final Output
+```
+########
+#......#
+#.###..#
+#...#.##
+#.#..X$#
+########
+Treasure found at location: {7,2}! Congratulation!
+```
+
 Have fun!
 
 # FAQ
