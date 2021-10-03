@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -43,6 +43,7 @@ var (
 	treasureMap        = make(map[[2]int]int)
 	treasureMapSizeXY  = [2]int{8, 6}
 	playerPositionXY   = [2]int{2, 2}
+	treasurePositionXY = [2]int{0, 0}
 	listCustomObstacle = [][2]int{
 		{3, 2},
 		{3, 4},
@@ -57,10 +58,42 @@ func init() {
 	generateMap()
 	spawnPlayer()
 	spawnTreasure()
-	renderTreasureMap()
 }
 
-func main() {}
+func main() {
+	var (
+		treasureFound           bool
+		currentPlayerPositionXY [2]int
+	)
+	// print initial condition
+	renderToTerminal()
+
+	// hide the treasure
+	setPossibleTreasure()
+
+	for !treasureFound {
+		movePlayer()
+		checkTreasure()
+		renderToTerminal()
+	}
+}
+
+// movePlayer update the coordinate of the player limited by predefined direction
+func movePlayer() {
+
+}
+
+// checkTreasure check all unobstructed line of X & Y from player position
+func checkTreasure() {
+
+}
+
+func renderToTerminal() {
+	fmt.Println("\033[2J")
+	fmt.Println(drawTreasureMap())
+
+	time.Sleep(1 * time.Second)
+}
 
 func generateMap() {
 	generateMapObstacleDefault()
@@ -101,10 +134,20 @@ func spawnTreasure() {
 
 		treasurePositionX = rand.Intn(xMax-xMin) + xMin
 		treasurePositionY = rand.Intn(yMax-yMin) + yMin
+		treasurePositionXY = [2]int{treasurePositionX, treasurePositionY}
 
-		if treasureMap[[2]int{treasurePositionX, treasurePositionY}] == path {
-			treasureMap[[2]int{treasurePositionX, treasurePositionY}] = treasure
+		if treasureMap[treasurePositionXY] == path {
+			treasureMap[treasurePositionXY] = treasure
 			break
+		}
+	}
+}
+
+// setPossibleTreasure hide the actual treasure coordinate to be exposed later
+func setPossibleTreasure() {
+	for coordinate := range treasureMap {
+		if treasureMap[coordinate] == path {
+			treasureMap[coordinate] = treasure
 		}
 	}
 }
@@ -114,14 +157,17 @@ func spawnPlayer() {
 	treasureMap[playerPositionXY] = player
 }
 
-// renderTreasureMap display the map in the terminal
-func renderTreasureMap() {
+// drawTreasureMap draw the map in a ready print a,.,,
+func drawTreasureMap() string {
 	var (
 		treasureMapDrawX, treasureMapDrawY string
 	)
 
 	for y := 1; y <= treasureMapSizeXY[1]; y++ {
-		treasureMapDrawX = "\n"
+		treasureMapDrawX = ""
+		if y < treasureMapSizeXY[1] {
+			treasureMapDrawX = "\n"
+		}
 		for x := 1; x <= treasureMapSizeXY[0]; x++ {
 			treasureMapDrawX = treasureMapDrawX + convertIntToEntity(treasureMap[[2]int{x, y}])
 		}
@@ -129,9 +175,10 @@ func renderTreasureMap() {
 
 	}
 
-	log.Println(treasureMapDrawY)
+	return treasureMapDrawY
 }
 
+// convertIntToEntity convert code constant of entity to a map drawn entity
 func convertIntToEntity(code int) string {
 	switch code {
 	case path:
