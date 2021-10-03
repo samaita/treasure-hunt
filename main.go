@@ -56,8 +56,8 @@ const (
 )
 
 var (
-	mapSize             = [2]int{8, 6}
-	playerStartPosition = [2]int{2, 2}
+	mapSize             = [2]int{8, 6} // define maximum size of the map [X,Y]
+	playerStartPosition = [2]int{2, 2} // define default location of the player
 	listCustomObstacle  = [][2]int{
 		{3, 2},
 		{3, 4},
@@ -72,7 +72,6 @@ type Player struct {
 	Position       [2]int
 	DirectionTaken int
 	FoundTreasure  bool
-	AbleToMove     bool
 }
 
 type Treasure struct {
@@ -137,25 +136,14 @@ func main() {
 	}
 }
 
+// NewPlayer creating a new player with initial position
 func NewPlayer() Player {
 	return Player{
-		Position:   playerStartPosition,
-		AbleToMove: true,
+		Position: playerStartPosition,
 	}
 }
 
-func NewTreasure() Treasure {
-	return Treasure{}
-}
-
-func NewTreasureMap(size [2]int) TreasureMap {
-	return TreasureMap{
-		Size:            size,
-		Mapping:         make(map[[2]int]int),
-		OriginalMapping: make(map[[2]int]int),
-	}
-}
-
+// setPosition update the value of player position
 func (p *Player) setPosition(newPosition [2]int) {
 	p.Position = newPosition
 }
@@ -193,7 +181,7 @@ func (p *Player) move(treasureMap map[[2]int]int) ([2]int, bool) {
 	return p.Position, false
 }
 
-// checkTreasure check all unobstructed line of X & Y from entity_player position
+// see check all unobstructed line of X & Y from entity_player position
 func (p *Player) see(treasureMap TreasureMap) ([2]int, [][2]int) {
 	var (
 		startX, startY                  = p.Position[0], p.Position[1]
@@ -236,6 +224,7 @@ func (p *Player) see(treasureMap TreasureMap) ([2]int, [][2]int) {
 	return treasureFound, listPathPosition
 }
 
+// checkMap a shorthand to validate an unobstructed line of sight in original mapping
 func checkMap(treasureMap TreasureMap, startAxis int, staticAxis int, addValue int, typeAxis int) ([2]int, [][2]int) {
 	var (
 		check            = true
@@ -268,22 +257,39 @@ func checkMap(treasureMap TreasureMap, startAxis int, staticAxis int, addValue i
 	return treasurePosition, pathPosition
 }
 
-// convertIntToEntity convert code constant of entity to a map drawn entity
-func convertIntToEntity(code int) string {
-	switch code {
-	case entity_path:
-		return "."
-	case entity_obstacle:
-		return "#"
-	case entity_player:
-		return "X"
-	case entity_treasure:
-		return "$"
-	default:
-		return "."
+// NewTreasure creating a new blank
+func NewTreasure() Treasure {
+	return Treasure{}
+}
+
+// randomizePosition put the entity_treasure in the map randomly. It require several loop to ensure the entity_treasure located on a clear entity_path
+func (t *Treasure) randomizePosition(sizeX, sizeY int) {
+	var (
+		xMin, xMax                           = 1, sizeX
+		yMin, yMax                           = 1, sizeY
+		treasurePositionX, treasurePositionY int
+		treasurePositionXY                   [2]int
+	)
+
+	rand.Seed(time.Now().UnixNano())
+
+	treasurePositionX = rand.Intn(xMax-xMin) + xMin
+	treasurePositionY = rand.Intn(yMax-yMin) + yMin
+	treasurePositionXY = [2]int{treasurePositionX, treasurePositionY}
+
+	t.Position = treasurePositionXY
+}
+
+// NewTreasureMap creating a new blank treasure map
+func NewTreasureMap(size [2]int) TreasureMap {
+	return TreasureMap{
+		Size:            size,
+		Mapping:         make(map[[2]int]int),
+		OriginalMapping: make(map[[2]int]int),
 	}
 }
 
+// render display of the mapping, not the original mapping. It also print the info of list possible location of the treasure.
 func (tm *TreasureMap) render() {
 	var (
 		treasureMapDrawPerLine, treasureMapDrawComplete string
@@ -327,30 +333,13 @@ func (tm *TreasureMap) addObstacle(listCustomObstacle [][2]int) {
 	}
 }
 
-// spawnTreasure put the entity_treasure in the map randomly. It require several loop to ensure the entity_treasure located on a clear entity_path
-func (t *Treasure) randomizePosition(sizeX, sizeY int) {
-	var (
-		xMin, xMax                           = 1, sizeX
-		yMin, yMax                           = 1, sizeY
-		treasurePositionX, treasurePositionY int
-		treasurePositionXY                   [2]int
-	)
-
-	rand.Seed(time.Now().UnixNano())
-
-	treasurePositionX = rand.Intn(xMax-xMin) + xMin
-	treasurePositionY = rand.Intn(yMax-yMin) + yMin
-	treasurePositionXY = [2]int{treasurePositionX, treasurePositionY}
-
-	t.Position = treasurePositionXY
-}
-
+// createMap generate a sandbox, obstacle in it boundaries, and custom obstacle inside
 func (tm *TreasureMap) createMap(obstacle [][2]int) {
 	tm.generate()
 	tm.addObstacle(obstacle)
 }
 
-// spawnPlayer put the entity_player a.k.a X on the entity_treasure map
+// setEntity put the entity in a position within the map
 func (tm *TreasureMap) setEntity(entity int, position [2]int) bool {
 	switch tm.Mapping[position] {
 	case entity_obstacle:
@@ -372,7 +361,10 @@ func (tm *TreasureMap) setEntity(entity int, position [2]int) bool {
 			tm.Mapping[position] = entity
 			return true
 		}
+	default:
+		return false
 	}
+
 	return false
 }
 
@@ -386,10 +378,27 @@ func (tm *TreasureMap) setPossibleTreasure() {
 	}
 }
 
+// revealMap unhide all unexplored possible treasure
 func (tm *TreasureMap) revealMap(treasurePositionXY [2]int) {
 	for coordinate := range tm.Mapping {
 		if tm.Mapping[coordinate] == entity_treasure && coordinate != treasurePositionXY {
 			tm.Mapping[coordinate] = entity_path
 		}
+	}
+}
+
+// convertIntToEntity convert code constant of entity to a map drawn entity
+func convertIntToEntity(code int) string {
+	switch code {
+	case entity_path:
+		return "."
+	case entity_obstacle:
+		return "#"
+	case entity_player:
+		return "X"
+	case entity_treasure:
+		return "$"
+	default:
+		return "."
 	}
 }
