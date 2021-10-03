@@ -60,7 +60,7 @@ const (
 )
 
 const (
-	delay_time       = 100  // time used to display a step taken for each movement before continuing
+	delay_time       = 400  // time used to display a step taken for each movement before continuing
 	render_interface = unix // planned to be able to run in golang playground but got TIMEOUT instead!
 )
 
@@ -111,8 +111,14 @@ func main() {
 	}
 	treasureMap.render() // display initial condition with treasure
 
+	fmt.Println("Initial Condition, treasure hid in:", treasure.Position)
+	time.Sleep(5 * time.Second)
+
 	treasureMap.setPossibleTreasure()
 	treasureMap.render() // display map with possible treasure location
+
+	fmt.Println("Now it's hidden! Let's go find it!")
+	time.Sleep(5 * time.Second)
 
 	for !player.FoundTreasure {
 		// player see unobstructed path, and determine which is treasure and which is path
@@ -345,7 +351,7 @@ func (tm *TreasureMap) render() {
 
 	if tm.TreasureLocation != [2]int{} {
 		coordinateString := strconv.Itoa(tm.TreasureLocation[0]) + "," + strconv.Itoa(tm.TreasureLocation[1])
-		treasureMapDrawComplete = treasureMapDrawComplete + fmt.Sprintf("\nTreasure found at location: {%s}", coordinateString)
+		treasureMapDrawComplete = treasureMapDrawComplete + fmt.Sprintf("\nTreasure found at location: {%s}! Congratulation!", coordinateString)
 	}
 
 	renderToTerminal(treasureMapDrawComplete)
