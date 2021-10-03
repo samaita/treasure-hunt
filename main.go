@@ -37,20 +37,32 @@ const (
 	treasure
 	player
 	obstacle
+
+	// direction
+	up = iota
+	right
+	down
 )
 
 var (
-	treasureMap        = make(map[[2]int]int)
-	treasureMapSizeXY  = [2]int{8, 6}
-	playerPositionXY   = [2]int{2, 2}
-	treasurePositionXY = [2]int{0, 0}
-	listCustomObstacle = [][2]int{
+	treasureMap              = make(map[[2]int]int)
+	treasureMapOriginalState = make(map[[2]int]int)
+	treasureMapSizeXY        = [2]int{8, 6}
+	playerPositionXY         = [2]int{2, 2}
+	playerPosibleMove        = [][2]int{}
+	listCustomObstacle       = [][2]int{
 		{3, 2},
 		{3, 4},
 		{4, 4},
 		{5, 4},
 		{5, 3},
 		{7, 3},
+	}
+	directionOrder = []int{up, right, down}
+	directionTaken = map[int]bool{
+		up:    false,
+		right: false,
+		down:  false,
 	}
 )
 
@@ -62,19 +74,32 @@ func init() {
 
 func main() {
 	var (
-		treasureFound           bool
-		currentPlayerPositionXY [2]int
+		treasureFound      bool
+		treasurePositionXY [2]int
 	)
+
 	// print initial condition
 	renderToTerminal()
 
 	// hide the treasure
 	setPossibleTreasure()
 
+	// print map with hidden treasure
+	renderToTerminal()
+
 	for !treasureFound {
-		movePlayer()
-		checkTreasure()
-		renderToTerminal()
+		treasurePositionXY, treasureFound = checkTreasure()
+		if treasureFound {
+			renderToTerminal()
+			revealMap(treasurePositionXY)
+			renderToTerminal()
+			break
+		} else {
+			renderToTerminal()
+			movePlayer()
+			renderToTerminal()
+		}
+
 	}
 }
 
@@ -83,9 +108,48 @@ func movePlayer() {
 
 }
 
-// checkTreasure check all unobstructed line of X & Y from player position
-func checkTreasure() {
+func revealMap(treasurePositionXY [2]int) {
+	for coordinate := range treasureMap {
+		if treasureMap[coordinate] == treasure && coordinate != treasurePositionXY {
+			treasureMap[coordinate] = path
+		}
+	}
+}
 
+// checkTreasure check all unobstructed line of X & Y from player position
+func checkTreasure() ([2]int, bool) {
+	var (
+		startX, startY       = playerPositionXY[0], playerPositionXY[1]
+		maxSightX, maxSightY = treasureMapSizeXY[0], treasureMapSizeXY[1]
+	)
+
+	for x := startX + 1; x <= maxSightX; x++ {
+		currentSight := [2]int{x, startY}
+
+		switch treasureMapOriginalState[currentSight] {
+		case path:
+			treasureMap[currentSight] = path
+		case treasure:
+			return currentSight, true
+		case obstacle:
+			x = maxSightX
+		}
+	}
+
+	for y := startY + 1; y <= maxSightY; y++ {
+		currentSight := [2]int{startX, y}
+
+		switch treasureMapOriginalState[currentSight] {
+		case path:
+			treasureMap[currentSight] = path
+		case treasure:
+			return currentSight, true
+		case obstacle:
+			y = maxSightY
+		}
+	}
+
+	return [2]int{}, false
 }
 
 func renderToTerminal() {
@@ -127,6 +191,7 @@ func spawnTreasure() {
 		xMin, xMax                           = 1, treasureMapSizeXY[0]
 		yMin, yMax                           = 1, treasureMapSizeXY[1]
 		treasurePositionX, treasurePositionY int
+		treasurePositionXY                   [2]int
 	)
 
 	for true {
@@ -146,6 +211,7 @@ func spawnTreasure() {
 // setPossibleTreasure hide the actual treasure coordinate to be exposed later
 func setPossibleTreasure() {
 	for coordinate := range treasureMap {
+		treasureMapOriginalState[coordinate] = treasureMap[coordinate]
 		if treasureMap[coordinate] == path {
 			treasureMap[coordinate] = treasure
 		}
