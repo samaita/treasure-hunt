@@ -54,7 +54,14 @@ const (
 )
 
 const (
-	delay_time = 500 // time used to display a step taken for each movement before continuing
+	// render terminal
+	unix = iota + 1
+	playground
+)
+
+const (
+	delay_time       = 100  // time used to display a step taken for each movement before continuing
+	render_interface = unix // planned to be able to run in golang playground but got TIMEOUT instead!
 )
 
 var (
@@ -341,9 +348,7 @@ func (tm *TreasureMap) render() {
 		treasureMapDrawComplete = treasureMapDrawComplete + fmt.Sprintf("\nTreasure found at location: {%s}", coordinateString)
 	}
 
-	fmt.Println("\033[2J")
-	fmt.Println(treasureMapDrawComplete)
-	time.Sleep(delay_time * time.Millisecond)
+	renderToTerminal(treasureMapDrawComplete)
 }
 
 // generateMapObstacleDefault putting theentity_obstacle on the outer sandbox
@@ -438,6 +443,20 @@ func (tm *TreasureMap) updatePossibleTreasureLocation(listPathPosition [][2]int)
 // clearPossibleTreasureLocation empty the list of possible treasure location, usually used once the treasure found
 func (tm *TreasureMap) clearPossibleTreasureLocation() {
 	tm.ListPossibleTreasureLocation = make(map[[2]int]bool)
+}
+
+// renderToTerminal performing animated rendering to terminal.
+// If you want to run in golang playground, change constant render_interface from unix to playground.
+// But sadly still unable to run in playground
+func renderToTerminal(output string) {
+	switch render_interface {
+	case unix:
+		fmt.Println("\033[2J")
+		fmt.Println(output)
+	case playground:
+		fmt.Printf("\x0c %s", output)
+	}
+	time.Sleep(delay_time * time.Millisecond)
 }
 
 // convertIntToEntity convert code constant of entity to a map drawn entity
