@@ -127,9 +127,6 @@ func checkTreasure() ([2]int, bool) {
 	checkPositive, checkNegative := true, true
 	for x := startX + 1; x <= maxSightX; x++ {
 		currentSightXPositive := [2]int{x, startY}
-		currentSightXNegative := [2]int{-x, startY}
-
-		log.Println("x", currentSightXPositive, currentSightXNegative)
 
 		if checkPositive {
 			foundObstacle, foundTreasure = checkMapEntity(currentSightXPositive)
@@ -139,6 +136,14 @@ func checkTreasure() ([2]int, bool) {
 			checkPositive = !foundObstacle
 		}
 
+		if !checkPositive {
+			x = maxSightX
+		}
+	}
+
+	for x := startX - 1; x >= 1; x-- {
+		currentSightXNegative := [2]int{-x, startY}
+
 		if checkNegative {
 			foundObstacle, foundTreasure = checkMapEntity(currentSightXNegative)
 			if foundTreasure {
@@ -147,17 +152,15 @@ func checkTreasure() ([2]int, bool) {
 			checkNegative = !foundObstacle
 		}
 
-		if !checkPositive && !checkNegative {
-			x = maxSightX
+		if !checkNegative {
+			x = 1
 		}
 	}
 
 	checkPositive, checkNegative = true, true
 	for y := startY + 1; y <= maxSightY; y++ {
 		currentSightYPositive := [2]int{startX, y}
-		currentSightYNegative := [2]int{startX, -y}
-
-		log.Println("y", currentSightYPositive, currentSightYNegative)
+		currentSightYNegative := [2]int{startX, y - 2}
 
 		if checkPositive {
 			foundObstacle, foundTreasure = checkMapEntity(currentSightYPositive)
@@ -175,11 +178,24 @@ func checkTreasure() ([2]int, bool) {
 			checkNegative = !foundObstacle
 		}
 
-		log.Println("y", checkPositive, checkNegative)
-		log.Println("y", treasureMapOriginalState[currentSightYPositive], treasureMapOriginalState[currentSightYNegative])
-
 		if !checkPositive && !checkNegative {
 			y = maxSightY
+		}
+	}
+
+	for y := startY - 1; y >= 1; y-- {
+		currentSightYNegative := [2]int{startX, y}
+
+		if checkNegative {
+			foundObstacle, foundTreasure = checkMapEntity(currentSightYNegative)
+			if foundTreasure {
+				return currentSightYNegative, foundTreasure
+			}
+			checkNegative = !foundObstacle
+		}
+
+		if !checkNegative {
+			y = 1
 		}
 	}
 
