@@ -119,37 +119,86 @@ func revealMap(treasurePositionXY [2]int) {
 // checkTreasure check all unobstructed line of X & Y from player position
 func checkTreasure() ([2]int, bool) {
 	var (
-		startX, startY       = playerPositionXY[0], playerPositionXY[1]
-		maxSightX, maxSightY = treasureMapSizeXY[0], treasureMapSizeXY[1]
+		startX, startY               = playerPositionXY[0], playerPositionXY[1]
+		maxSightX, maxSightY         = treasureMapSizeXY[0], treasureMapSizeXY[1]
+		foundTreasure, foundObstacle = false, false
 	)
 
+	checkPositive, checkNegative := true, true
 	for x := startX + 1; x <= maxSightX; x++ {
-		currentSight := [2]int{x, startY}
+		currentSightXPositive := [2]int{x, startY}
+		currentSightXNegative := [2]int{-x, startY}
 
-		switch treasureMapOriginalState[currentSight] {
-		case path:
-			treasureMap[currentSight] = path
-		case treasure:
-			return currentSight, true
-		case obstacle:
+		log.Println("x", currentSightXPositive, currentSightXNegative)
+
+		if checkPositive {
+			foundObstacle, foundTreasure = checkMapEntity(currentSightXPositive)
+			if foundTreasure {
+				return currentSightXPositive, foundTreasure
+			}
+			checkPositive = !foundObstacle
+		}
+
+		if checkNegative {
+			foundObstacle, foundTreasure = checkMapEntity(currentSightXNegative)
+			if foundTreasure {
+				return currentSightXNegative, foundTreasure
+			}
+			checkNegative = !foundObstacle
+		}
+
+		if !checkPositive && !checkNegative {
 			x = maxSightX
 		}
 	}
 
+	checkPositive, checkNegative = true, true
 	for y := startY + 1; y <= maxSightY; y++ {
-		currentSight := [2]int{startX, y}
+		currentSightYPositive := [2]int{startX, y}
+		currentSightYNegative := [2]int{startX, -y}
 
-		switch treasureMapOriginalState[currentSight] {
-		case path:
-			treasureMap[currentSight] = path
-		case treasure:
-			return currentSight, true
-		case obstacle:
+		log.Println("y", currentSightYPositive, currentSightYNegative)
+
+		if checkPositive {
+			foundObstacle, foundTreasure = checkMapEntity(currentSightYPositive)
+			if foundTreasure {
+				return currentSightYPositive, foundTreasure
+			}
+			checkPositive = !foundObstacle
+		}
+
+		if checkNegative {
+			foundObstacle, foundTreasure = checkMapEntity(currentSightYNegative)
+			if foundTreasure {
+				return currentSightYNegative, foundTreasure
+			}
+			checkNegative = !foundObstacle
+		}
+
+		log.Println("y", checkPositive, checkNegative)
+		log.Println("y", treasureMapOriginalState[currentSightYPositive], treasureMapOriginalState[currentSightYNegative])
+
+		if !checkPositive && !checkNegative {
 			y = maxSightY
 		}
 	}
 
 	return [2]int{}, false
+}
+
+func checkMapEntity(position [2]int) (bool, bool) {
+	switch treasureMapOriginalState[position] {
+	case path:
+		treasureMap[position] = path
+	case treasure:
+		return false, true
+	case obstacle:
+		return true, false
+	default:
+		return true, false
+	}
+
+	return false, false
 }
 
 func renderToTerminal() {
